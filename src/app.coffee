@@ -15,12 +15,12 @@ execSync   = require('child_process').execSync
 # .option '-v, --verbose', 'Increase verbose mode'
 # .parse process.argv
 
-pack_name = 'xhex'
+pack_name = 'pyside'
 
 # TODO se nao existir tem que tentar baixar a pemba
-pack = require("aaa-#{pack_name}")(chalk)
+pack = require("yomano-#{pack_name}")(chalk)
 
-console.log "\nInstalling: #{chalk.cyan pack.name}\n\n#{pack.description}\n\n"
+console.log "\nInstalling: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
 
 base_prompt = [
     name: "name"
@@ -63,13 +63,15 @@ executeEvents = (ev, context) ->
                     console.log l
                     code = execSync l
 
+
 executeEvents pack.init
 
+prompt.message = chalk.cyan pack_name
 prompt.start()
 prompt.get base_prompt.concat(pack.prompt), (err, result) ->
     context =
         platform: process.platform
-        source: path.join path.dirname(require.resolve "aaa-#{pack_name}"), 'source'
+        source: path.join path.dirname(require.resolve "yomano-#{pack_name}"), 'source'
         dest: process.cwd()
         name: result.name
         form: result
