@@ -17,7 +17,8 @@
     "mkdirp": "^0.5.1",
     "preprocess": "^3.1.0",
     "progress": "^1.1.8",
-    "prompt": "^1.0.0"
+    "prompt": "^1.0.0",
+    "request": "^2.72.0"
   },
   "preferGlobal": true,
   "bin": {

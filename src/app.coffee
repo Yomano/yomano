@@ -1,23 +1,27 @@
-commander  = require 'commander'
 chalk      = require 'chalk'
-prompt     = require 'prompt'
-globby     = require 'globby'
-path       = require 'path'
-fs         = require 'fs'
-Progress   = require 'progress'
-mkdirp     = require 'mkdirp'
-preprocess = require('preprocess').preprocessFile
+commander  = require 'commander'
 execSync   = require('child_process').execSync
+fs         = require 'fs'
+globby     = require 'globby'
+mkdirp     = require 'mkdirp'
+path       = require 'path'
+preprocess = require('preprocess').preprocessFile
+Progress   = require 'progress'
+prompt     = require 'prompt'
+request    = require 'request'
 
-# commander
-# .version '0.0.1'
-# .option '-P, --pineapple', 'Add pineapple'
-# .option '-v, --verbose', 'Increase verbose mode'
-# .parse process.argv
 
-pack_name = 'pyside'
+commander
+.version '0.0.1'
+.option '-v, --verbose', 'Increase verbose mode'
+.parse process.argv
+
+commander.help() if commander.args.length isnt 1
+
+pack_name = commander.args[0]
 
 # TODO se nao existir tem que tentar baixar a pemba
+#
 pack = require("yomano-#{pack_name}")(chalk)
 
 console.log "\nInstalling: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
@@ -77,10 +81,11 @@ prompt.get base_prompt.concat(pack.prompt), (err, result) ->
         form: result
         filters: ['**/*', '**/.*']
 
-    for s in pack.special
-        for op in s[1].split ';'
-            if op[..2] == 'if:'
-                context.filters.push "!#{s[0]}" unless context.form[op[3..]]
+    if pack.special?
+        for s in pack.special
+            for op in s[1].split ';'
+                if op[..2] == 'if:'
+                    context.filters.push "!#{s[0]}" unless context.form[op[3..]]
 
     executeEvents pack.after_prompt, context
 
@@ -96,13 +101,15 @@ prompt.get base_prompt.concat(pack.prompt), (err, result) ->
         callback: ->
             executeEvents pack.after_copy, context
             executeEvents pack.say_bye, context
+            process.exit 0
 
     for file in context.files
         opt = []
         target = file
-        for s in pack.special
-            if s[0] == file
-                opt = s[1].split ';'
+        if pack.special?
+            for s in pack.special
+                if s[0] == file
+                    opt = s[1].split ';'
 
         mark = /// \{ (\w+) \} ///g
         while (m = mark.exec file)?
