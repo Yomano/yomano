@@ -13,18 +13,30 @@ request    = require 'request'
 
 commander
 .version '0.0.1'
-.option '-v, --verbose', 'Increase verbose mode'
+.option '-s, --save', 'save personal information'
+.option '-v, --verbose', 'verbose mode'
 .parse process.argv
 
 commander.help() if commander.args.length isnt 1
 
 pack_name = commander.args[0]
+pack_file = if pack_name == 'init' then "../init" else "yomano-#{pack_name}"
 
+try
+    pack = require(pack_file)(chalk)
+catch e
 # TODO se nao existir tem que tentar baixar a pemba
-#
-pack = require("yomano-#{pack_name}")(chalk)
+
 
 console.log "\nInstalling: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
+
+configFile = path.join (process.env.HOME || process.env.USERPROFILE), '.yomano.json'
+
+try
+    config = require configFile
+catch e
+    config = {}
+    commander.save = yes
 
 base_prompt = [
     name: "name"
@@ -33,6 +45,14 @@ base_prompt = [
     pattern: /^\w+$/
     message: 'Can\'t be empty'
     default: path.basename process.cwd()
+    required: true
+,
+    name: "owner"
+    default: config.owner
+    required: true
+,
+    name: "email"
+    default: config.email
     required: true
 ]
 
@@ -44,17 +64,22 @@ copyFile = (source, target, context, opt, cb) ->
             cb? err
             cbCalled = yes
 
-    mkdirp path.dirname(target), (err) ->
-        return done err if err
-        if 'final' in opt
-            rd = fs.createReadStream source
-            rd.on "error", (err) -> done err
-            wr = fs.createWriteStream target
-            wr.on "error", (err) -> done err
-            wr.on "close", (ex) -> done()
-            rd.pipe wr
-        else
-            preprocess source, target, context, done, type: 'js'
+    console.log target if commander.verbose
+
+    if target[-1..-1] in '/\\'
+        mkdirp target, (err) -> done err
+    else
+        mkdirp path.dirname(target), (err) ->
+            return done err if err
+            if 'final' in opt
+                rd = fs.createReadStream source
+                rd.on "error", (err) -> done err
+                wr = fs.createWriteStream target
+                wr.on "error", (err) -> done err
+                wr.on "close", (ex) -> done()
+                rd.pipe wr
+            else
+                preprocess source, target, context, done, type: 'js'
 
 executeEvents = (ev, context) ->
     if ev?
@@ -72,12 +97,24 @@ executeEvents pack.init
 
 prompt.message = chalk.cyan pack_name
 prompt.start()
-prompt.get base_prompt.concat(pack.prompt), (err, result) ->
+schema = if pack.prompt? then base_prompt.concat(pack.prompt) else base_prompt
+prompt.get schema, (err, result) ->
+
+    if commander.save
+        data =
+            owner: result.owner
+            email: result.email
+        fs.writeFile configFile, JSON.stringify data, null, 4
+
     context =
         platform: process.platform
-        source: path.join path.dirname(require.resolve "yomano-#{pack_name}"), 'source'
+        source: path.join path.dirname(require.resolve pack_file), 'source'
         dest: process.cwd()
         name: result.name
+        owner: result.owner
+        email: result.email
+        date:
+            year: new Date().getFullYear()
         form: result
         filters: ['**/*', '**/.*']
 
@@ -89,7 +126,7 @@ prompt.get base_prompt.concat(pack.prompt), (err, result) ->
 
     executeEvents pack.after_prompt, context
 
-    context.files = globby.sync context.filters, cwd:context.source, nodir:true
+    context.files = globby.sync context.filters, cwd:context.source, mark:true
 
     # console.log context
 

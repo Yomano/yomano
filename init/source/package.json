@@ -1,0 +1,9 @@
+{
+  "name": "yomano-/* @echo name */",
+  "version": "1.0.0",
+  "description": "/* @echo name */ pack for Yomano",
+  "main": "index.js",
+  "author": "/* @echo owner */ </* @echo email */>",
+  "license": "MIT",
+  "preferGlobal": true
+}

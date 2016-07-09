@@ -1,0 +1,9 @@
+{
+  "name": "yomano-yomano",
+  "version": "1.0.0",
+  "description": "Yomano pack for Yomano",
+  "main": "index.js",
+  "author": "Gustavo Vargas <xgvargas@gmail.com>",
+  "license": "MIT",
+  "preferGlobal": true
+}
