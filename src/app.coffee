@@ -12,6 +12,7 @@ execSync   = require('child_process').execSync
 # commander
 # .version '0.0.1'
 # .option '-P, --pineapple', 'Add pineapple'
+# .option '-v, --verbose', 'Increase verbose mode'
 # .parse process.argv
 
 pack_name = 'xhex'

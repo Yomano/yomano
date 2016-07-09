@@ -1,9 +1,12 @@
 {
-  "name": "aaa",
+  "name": "yomano",
   "version": "0.1.0",
-  "description": "",
+  "description": "Project starter!",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepublish": "npm run compile",
+    "build": "npm run compile",
+    "compile": "coffee -cbo lib src",
+    "watch": "coffee -cwbo lib src"
   },
   "author": "Gustavo Vargas <xgvargas@gmail.com>",
   "license": "MIT",
@@ -18,6 +21,6 @@
   },
   "preferGlobal": true,
   "bin": {
-    "aaa": "./app.js"
+    "yomano": "./app.js"
   }
 }
