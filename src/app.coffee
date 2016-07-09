@@ -20,7 +20,7 @@ commander
 commander.help() if commander.args.length isnt 1
 
 pack_name = commander.args[0]
-pack_file = if pack_name == 'init' then "../init" else "yomano-#{pack_name}"
+pack_file = if pack_name == 'pack' then "../init" else "yomano-#{pack_name}"
 
 try
     pack = require(pack_file)(chalk)
@@ -42,7 +42,7 @@ base_prompt = [
     name: "name"
     description: 'Application name'
     type: 'string'
-    pattern: /^\w+$/
+    pattern: /^[\w-]+$/
     message: 'Can\'t be empty'
     default: path.basename process.cwd()
     required: true

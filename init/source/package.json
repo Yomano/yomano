@@ -1,5 +1,5 @@
 {
-  "name": "yomano-/* @echo name */",
+  "name": "/* @echo name */",
   "version": "1.0.0",
   "description": "/* @echo name */ pack for Yomano",
   "main": "index.js",
