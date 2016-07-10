@@ -15,6 +15,7 @@
     "commander": "^2.9.0",
     "globby": "^5.0.0",
     "mkdirp": "^0.5.1",
+    "positive": "^1.0.9",
     "preprocess": "^3.1.0",
     "progress": "^1.1.8",
     "prompt": "^1.0.0",
