@@ -1,9 +1,12 @@
 {
   "name": "/* @echo name */",
   "version": "1.0.0",
-  "description": "/* @echo name */ pack for Yomano",
+  "description": "/* @echo name */ -> /* @echo description */",
   "main": "index.js",
   "author": "/* @echo owner */ </* @echo email */>",
   "license": "MIT",
+  /* @if private==true */
+  "private": true,
+  /* @endif */
   "preferGlobal": true
 }

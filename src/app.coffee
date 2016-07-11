@@ -10,6 +10,7 @@ preprocess = require('preprocess').preprocessFile
 Progress   = require 'progress'
 prompt     = require 'prompt'
 
+# FIXME precisa escapar as strings
 
 class MyConfig
     constructor: ->
@@ -125,7 +126,7 @@ executeEvents pack.init
 
 base_prompt = [
     name: "name"
-    description: 'Application name'
+    description: 'Pack name'
     type: 'string'
     pattern: /^[\w-]+$/
     message: 'Can\'t be empty'
@@ -157,6 +158,8 @@ prompt.get schema, (err, result) ->
             for op in s[1].split ';'
                 if op[..2] == 'if:'
                     context.filters.push "!#{s[0]}" unless context[op[3..]]
+                if op[..3] == 'if:!'
+                    context.filters.push "!#{s[0]}" if context[op[3..]]
 
     executeEvents pack.after_prompt, context
 
