@@ -44,7 +44,17 @@ yomano-something
 
 Go to an empty folder named as `yonamo-<something>`, execute `yomano new` and answer the questions.
 
+You should have now a `index.js`, `license`, `package.json` files and a `source` folder.
+
+Put your template files inside the source folder. Rename then as bellow and insert the template tags.
+
+Edit `index.js` as needed (in many cases you don't even need), and you are done.
+
 ### index.js
+
+The only mandatory entries are `name` and `description`.
+
+Also, notice you have `chalk` available so you can easily print out nice colored texts.  
 
 ```js
 module.exports = function(chalk){
@@ -55,7 +65,7 @@ module.exports = function(chalk){
             {name:'test', type:'boolean'},
         ],
         special: [
-            ['test/*', 'if:test']
+            ['optional/*', 'if:test']
         ],
         init         : function(){},
         after_prompt : function(context){},
@@ -72,7 +82,7 @@ An array of objects. Used to inquire the user with relevant questions. You can u
 
 The first 3 questions are standard:
 
-- pack name
+- application name
 - user name
 - user email
 
@@ -91,7 +101,47 @@ There is two commands:
 
 You can use `if:test` for a positive test or `if:!test` for a negative.
 
-In example above the content of `test` is only installed if you answer true for the *test* question when prompted.
+In example above the content of `optional` folder is only installed if you answer true for the *test* question when prompted.
+
+### file names
+
+You can change file names to match your needs by naming files inside `source` folder as `{name}.js` or even `.{name}-config.ini`
+
+Yomano will rename then to `something.js` and `.something-config.ini` if you answer `something` for your application's name.
+
+### preprocessor
+
+Yomano uses [preprocess](https://github.com/jsoverson/preprocess#directive-syntax) as it template engine. You can use any of its directives as long you **ALWAYS** use the `js` syntax, no matter the file you are producing. All used directive will be removed after its evaluation so your final code will be fine.
+
+Example in a js file:
+
+```js
+var user = "/* @echo owner */";
+
+/* @if test==true */
+test = require('test');
+test.doit(user);
+/* @endif */
+```
+
+in HTML:
+
+```html
+<label for="email">Email</label>
+<input type="text" name="f_email" id="email" value="/* @echo email */">
+```
+
+JSON
+
+```json
+{
+    "who": "/* @echo owner */"
+    /* @if test==false */
+    ,
+    "disable_test": true
+    /* @endif */
+}
+```
 
 ### context and callbacks
 
@@ -99,25 +149,25 @@ Context is an object passed to callbacks. The first callback (`init`), does not 
 
 These are available for `after_prompt`:
 
-- context.platform
-- context.dest
-- context.date
-- context.filters
-- context.source
-- context.name
-- context.owner
-- context.email
+- `context.platform`
+- `context.source`
+- `context.dest`
+- `context.date`
+- `context.filters`
+- `context.name`
+- `context.owner`
+- `context.email`
 
 also any other information you have requested in your pack will be available in context (like `context.test` in current example).
 
 All remaining callbacks will also include:
 
-- context.files
+- `context.files`
 
 There is 5 callbacks you can use:
 
 - **init** - can be used to print something to the user.
-- **after_prompt** - `context.filter` will be populated with your defined filters applied, here you have a chance to make changes to it.
+- **after_prompt** - `context.filter` will be populated with your special filters applied, here you have a chance to make changes to it.
 - **before_copy** - now you have an array of all files to be copied, and you can hack with it.
 - **after_copy** - the copy is done. You can start an environment here, for example, you can execute `bower install && npm install` at this point.
 - **say_bye** - print a last opportunity message or something like that.
@@ -132,7 +182,7 @@ after_copy : function(context){
     return [
         'virtualenv venv',
         function(){console.log('I could be an echo :)');},
-        ((context.platform=='win32')? 'venv\\scripts\\activate':'venv/bin/activate') + ' && pip install -r uirements.txt',
+        ((context.platform=='win32')? 'venv\\scripts\\activate':'venv/bin/activate') + ' && pip install -r requirements.txt',
     ]
 }
 ```

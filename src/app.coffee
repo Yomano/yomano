@@ -126,7 +126,7 @@ executeEvents pack.init
 
 base_prompt = [
     name: "name"
-    description: 'Pack name'
+    description: 'Application name'
     type: 'string'
     pattern: /^[\w-]+$/
     message: 'Can\'t be empty'
