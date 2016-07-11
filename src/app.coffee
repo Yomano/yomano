@@ -9,7 +9,6 @@ positive   = require 'positive'
 preprocess = require('preprocess').preprocessFile
 Progress   = require 'progress'
 prompt     = require 'prompt'
-request    = require 'request'
 
 
 class MyConfig
@@ -33,6 +32,8 @@ copyFile = (source, target, context, opt, cb) ->
         unless cbCalled
             cb? err
             cbCalled = yes
+
+    return done() if source[-13..] == '.yomanoignore'
 
     console.log target if commander.verbose
 
@@ -63,6 +64,7 @@ executeEvents = (ev, context) ->
                     console.log l
                     code = execSync l
                     process.exit code if code
+    return
 
 
 config = new MyConfig()
@@ -73,38 +75,41 @@ context =
     date:
         year: new Date().getFullYear()
     filters: ['**/*', '**/.*']
-    pack_name: undefined
-    pack_file: undefined
 
 if globby.sync(context.filters, cwd:context.dest).length
     process.exit 1 unless positive chalk.red('Oops!') + ' Target folder already have files inside. Continue? [No]: ', no
 
 commander
-    .version '0.0.1'
+    .version require('../package.json').version
+
+commander
+    .command 'setup <pack_name>'
+    .description 'setup a new environment'
     .option '-s, --save', 'save personal information'
     .option '-v, --verbose', 'verbose mode'
-    .arguments('<pack_name>')
     .action (pack) ->
         context.pack_name = pack
         context.pack_file = "yomano-#{pack}"
+    # .on '--help', -> console.log """"""
 
 commander
-    .command('pack')
-    .description('start a new pack for yomano')
+    .command 'new'
+    .description 'start a new pack for yomano'
     .action ->
-        context.pack_name = 'pack'
+        context.pack_name = 'new'
         context.pack_file = "../init"
 
 commander
-    .command('home [path]')
-    .description('get/set personal home folder')
+    .command 'home [path]'
+    .description 'get/set personal home folder'
     .action (path) ->
         config.set 'home', path if path?
         console.log "\nYour current home folder: " + chalk.yellow config.get 'home'
         process.exit 0
 
 commander.parse process.argv
-commander.help() unless context.pack_name
+
+commander.help() unless context.pack_name?
 
 try
     pack = require(context.pack_file)(chalk)
@@ -180,3 +185,5 @@ prompt.get schema, (err, result) ->
             target = target.replace '{' + m[1] + '}', context[m[1]]
 
         copyFile path.join(context.source, file), path.join(context.dest, target), context, opt, -> bar.tick()
+
+    return
