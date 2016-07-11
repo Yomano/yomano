@@ -78,7 +78,7 @@ context =
     filters: ['**/*', '**/.*']
 
 if globby.sync(context.filters, cwd:context.dest).length
-    process.exit 1 unless positive chalk.red('Oops!') + ' Target folder already have files inside. Continue? [No]: ', no
+    process.exit 1 unless positive "#{chalk.red('Oops!')} Target folder already have files inside. Continue? [No]: ", no
 
 commander
     .version require('../package.json').version
@@ -105,7 +105,7 @@ commander
     .description 'get/set personal home folder'
     .action (path) ->
         config.set 'home', path if path?
-        console.log "\nYour current home folder: " + chalk.yellow config.get 'home'
+        console.log "\nYour current home folder: #{chalk.yellow config.get 'home'}"
         process.exit 0
 
 commander.parse process.argv
@@ -114,12 +114,17 @@ commander.help() unless context.pack_name?
 
 try
     pack = require(context.pack_file)(chalk)
-catch e
-    console.log e
-    process.exit 1
-# TODO se nao existir tem que tentar baixar a pemba
+    context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
 
-context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
+if not context.source? and config.get 'home'
+    try
+        local = path.join config.get('home'), context.pack_file
+        pack = require(local)(chalk)
+        context.source = path.join path.dirname(require.resolve local), 'source'
+
+unless context.source?
+    console.log "#{chalk.red('\nOops!')} Can't find package #{chalk.yellow(context.pack_file)}"
+    process.exit 1
 
 console.log "\nInstalling: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
 executeEvents pack.init
@@ -159,7 +164,7 @@ prompt.get schema, (err, result) ->
                 if op[..2] == 'if:'
                     context.filters.push "!#{s[0]}" unless context[op[3..]]
                 if op[..3] == 'if:!'
-                    context.filters.push "!#{s[0]}" if context[op[3..]]
+                    context.filters.push "!#{s[0]}" if context[op[4..]]
 
     executeEvents pack.after_prompt, context
 
@@ -186,6 +191,11 @@ prompt.get schema, (err, result) ->
         mark = /// \{ (\w+) \} ///g
         while (m = mark.exec file)?
             target = target.replace '{' + m[1] + '}', context[m[1]]
+
+        for o in opt
+            if o[..6] == 'rename:'
+                val = o[7..].split ':'
+                target.replace val[0], val[1]
 
         copyFile path.join(context.source, file), path.join(context.dest, target), context, opt, -> bar.tick()
 

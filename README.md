@@ -50,6 +50,8 @@ Put your template files inside the source folder. Rename then as bellow and inse
 
 Edit `index.js` as needed (in many cases you don't even need), and you are done.
 
+You are ready to setup a new project with this template with: `yomano setup something`.
+
 ### index.js
 
 The only mandatory entries are `name` and `description`.
@@ -94,14 +96,34 @@ It should be an array of arrays, the second array has two strings.
 
 The first strings is a file name which could use wildcards. The second string is a list (separated by **;**), of commands to apply to that file.
 
-There is two commands:
+There are 3 commands:
 
 - `if` - this filters the files by checking responses to the prompt.
 - `final` - this says to **not** preprocess this files while copying it.
+- `rename` - can rename parts of your relative file path.
 
 You can use `if:test` for a positive test or `if:!test` for a negative.
 
 In example above the content of `optional` folder is only installed if you answer true for the *test* question when prompted.
+
+A special like: `['temp1/robot.txt', 'rename:temp1:www']` will save the file from `<context.source>/temp1/robot.txt` as `<context.dest>/www/robot.txt`.
+
+You can combine all:
+
+```js
+return {
+    prompt: [
+        {name:'mode', description:'Use advanced mode? [yes]', type:'boolean', default:true},
+    ],
+    special: [
+        ['advanced/index.html', 'if:mode;rename:advanced:www'],
+        ['normal/index.html', 'if:!mode;rename:normal:www'],
+    ],
+}
+```
+
+This example is fine, but in many cases is easier to have a single index.html and use preprocess directives inspecting `context.mode` inside it to change as needed.
+
 
 ### file names
 
@@ -109,9 +131,11 @@ You can change file names to match your needs by naming files inside `source` fo
 
 Yomano will rename then to `something.js` and `.something-config.ini` if you answer `something` for your application's name.
 
+Also, yomano will create empty folders for you, but git will not track then. So, you can create a `.yomanoignore` file inside it and you will have your desired tracked empty folder.
+
 ### preprocessor
 
-Yomano uses [preprocess](https://github.com/jsoverson/preprocess#directive-syntax) as it template engine. You can use any of its directives as long you **ALWAYS** use the `js` syntax, no matter the file you are producing. All used directive will be removed after its evaluation so your final code will be fine.
+Yomano uses [preprocess](https://github.com/jsoverson/preprocess#directive-syntax) as its template engine. You can use any of its directives as long you **ALWAYS** use the `js` syntax, no matter the file you are producing. All used directive will be removed after its evaluation so your final code will be fine.
 
 Example in a js file:
 
@@ -127,11 +151,10 @@ test.doit(user);
 in HTML:
 
 ```html
-<label for="email">Email</label>
 <input type="text" name="f_email" id="email" value="/* @echo email */">
 ```
 
-JSON
+JSON (you have lots of syntax errors, but the final file should be fine!)
 
 ```json
 {
@@ -164,7 +187,7 @@ All remaining callbacks will also include:
 
 - `context.files`
 
-There is 5 callbacks you can use:
+There are 5 callbacks you can use:
 
 - **init** - can be used to print something to the user.
 - **after_prompt** - `context.filter` will be populated with your special filters applied, here you have a chance to make changes to it.
@@ -190,6 +213,8 @@ after_copy : function(context){
 ## Publish
 
 If you want to share your template simple execute `npm publish` from inside your pack folder. 
+
+Then any one can install it with: `npm install -g yomano-your-pack-name`
 
 ## Yomano?
 
