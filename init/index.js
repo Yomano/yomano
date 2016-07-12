@@ -1,10 +1,10 @@
-module.exports = function(chalk){
+module.exports = function(chalk, fs, path){
 	return {
 		name: 'Yomano!',
 		description: 'Yomano pack starter.',
         prompt: [
-            {name:'description'},
-            {name:'private', description:'Is a private pack?', type:'boolean', default:false},
+            {name:'description', message:'description'},
+            {name:'private', message:'Is a private pack?', type:'confirm', default:false},
         ],
         after_prompt : function(context){
             if(context.name.substring(0, 7) != 'yomano-'){

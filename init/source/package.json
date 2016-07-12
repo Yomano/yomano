@@ -1,12 +1,12 @@
 {
-  "name": "/* @echo name */",
+  "name": "<%= name %>",
   "version": "1.0.0",
-  "description": "/* @echo name */ -> /* @echo description */",
+  "description": "<%= name %> -> <%= description %>",
   "main": "index.js",
-  "author": "/* @echo owner */ </* @echo email */>",
+  "author": "<%= owner %> <<%= email %>>",
   "license": "MIT",
-  /* @if private==true */
+  <%_ if(private){ -%>
   "private": true,
-  /* @endif */
+  <%_ } -%>
   "preferGlobal": true
 }
