@@ -1,14 +1,15 @@
-chalk      = require 'chalk'
-commander  = require 'commander'
-execSync   = require('child_process').execSync
-fs         = require 'fs'
-globby     = require 'globby'
-mkdirp     = require 'mkdirp'
-path       = require 'path'
-positive   = require 'positive'
-preprocess = require('preprocess').preprocessFile
-Progress   = require 'progress'
-prompt     = require 'prompt'
+chalk            = require 'chalk'
+commander        = require 'commander'
+{execSync}       = require 'child_process'
+fs               = require 'fs'
+globby           = require 'globby'
+mkdirp           = require 'mkdirp'
+path             = require 'path'
+positive         = require 'positive'
+{preprocessFile} = require 'preprocess'
+Progress         = require 'progress'
+prompt           = require 'prompt'
+minimatch        = require 'minimatch'
 
 # FIXME precisa escapar as strings
 
@@ -34,11 +35,11 @@ copyFile = (source, target, context, opt, cb) ->
             cb? err
             cbCalled = yes
 
-    return done() if source[-13..] == '.yomanoignore'
+    return done() if minimatch source, '.yomanoignore', matchBase:true, dot:true
 
-    console.log target if commander.verbose
+    console.log target if context._verbose
 
-    if target[-1..-1] in '/\\'
+    if target[-1..] in '/\\'
         mkdirp target, (err) -> done err
     else
         mkdirp path.dirname(target), (err) ->
@@ -51,7 +52,7 @@ copyFile = (source, target, context, opt, cb) ->
                 wr.on "close", (ex) -> done()
                 rd.pipe wr
             else
-                preprocess source, target, context, done, type: 'js'
+                preprocessFile source, target, context, done, type: 'js'
 
 
 executeEvents = (ev, context) ->
@@ -88,7 +89,9 @@ commander
     .description 'setup a new environment'
     .option '-s, --save', 'save personal information'
     .option '-v, --verbose', 'verbose mode'
-    .action (pack) ->
+    .action (pack, options) ->
+        context._verbose = options.verbose
+        context._save = options.save
         context.pack_name = pack
         context.pack_file = "yomano-#{pack}"
     # .on '--help', -> console.log """"""
@@ -152,23 +155,22 @@ prompt.message = chalk.cyan context.pack_name
 prompt.start()
 prompt.get schema, (err, result) ->
 
-    if commander.save
+    if context._save
         config.set 'owner', result.owner
         config.set 'email', result.email
 
     context[r] = result[r] for r of result
 
-    if pack.special?
-        for s in pack.special
-            for op in s[1].split ';'
-                if op[..2] == 'if:'
-                    context.filters.push "!#{s[0]}" unless context[op[3..]]
-                if op[..3] == 'if:!'
-                    context.filters.push "!#{s[0]}" if context[op[4..]]
+    for s in pack.special || []
+        for op in s[1].split ';'
+            if op[..2] == 'if:' and op[3] != '!'
+                context.filters.push "!#{s[0]}" unless context[op[3..]]
+            if op[..3] == 'if:!'
+                context.filters.push "!#{s[0]}" if context[op[4..]]
 
     executeEvents pack.after_prompt, context
 
-    context.files = globby.sync context.filters, cwd:context.source, mark:true
+    context.files = globby.sync context.filters, cwd:context.source, mark:true, dot:true
 
     executeEvents pack.before_copy, context
 
@@ -183,10 +185,9 @@ prompt.get schema, (err, result) ->
     for file in context.files
         opt = []
         target = file
-        if pack.special?
-            for s in pack.special
-                if s[0] == file
-                    opt = s[1].split ';'
+        for s in pack.special || []
+            if minimatch target, s[0], {dot:true, nocase:true}
+                opt = s[1].split ';'
 
         mark = /// \{ (\w+) \} ///g
         while (m = mark.exec file)?
@@ -195,7 +196,7 @@ prompt.get schema, (err, result) ->
         for o in opt
             if o[..6] == 'rename:'
                 val = o[7..].split ':'
-                target.replace val[0], val[1]
+                target = target.replace val[0], val[1]
 
         copyFile path.join(context.source, file), path.join(context.dest, target), context, opt, -> bar.tick()
 
