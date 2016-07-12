@@ -18,7 +18,7 @@ npm install -g yomano
 yomano setup angular-example
 ```
 
-For this to work you should have the package `yomano-angular-example` installed as global or placed in you yomano home path.
+For this to work you should have the package `yomano-angular-example` installed as global or placed in your yomano home path.
 
 ## Home path
 
@@ -56,7 +56,7 @@ You are ready to setup a new project with this template with: `yomano setup some
 
 The only mandatory entries are `name` and `description`.
 
-Also, notice you have `chalk` available so you can easily print out nice colored texts.  
+Notice you have `chalk` available so you can easily print out nice colored texts.  
 
 ```js
 module.exports = function(chalk){

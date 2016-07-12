@@ -25,5 +25,13 @@
   "preferGlobal": true,
   "bin": {
     "yomano": "./app.js"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Yomano/yomano.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Yomano/yomano/issues"
+  },
+  "homepage": "https://github.com/Yomano/yomano#yomano"
 }
