@@ -1,15 +1,15 @@
 chalk      = require 'chalk'
 commander  = require 'commander'
+ejs        = require 'ejs'
 {execSync} = require 'child_process'
 fs         = require 'fs'
 globby     = require 'globby'
+inquirer   = require 'inquirer'
+minimatch  = require 'minimatch'
 mkdirp     = require 'mkdirp'
 path       = require 'path'
 positive   = require 'positive'
 Progress   = require 'progress'
-minimatch  = require 'minimatch'
-inquirer   = require 'inquirer'
-ejs        = require 'ejs'
 
 
 class MyConfig

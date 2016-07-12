@@ -42,7 +42,7 @@ yomano-something
 
 ## Creating a new template pack
 
-Go to an empty folder named as `yonamo-<something>`, execute `yomano new` and answer the questions.
+Go to an empty folder named as `yonamo-something`, execute `yomano new` and answer the questions.
 
 You should have now a `index.js`, `license`, `package.json` files and a `source` folder.
 
@@ -56,18 +56,18 @@ You are ready to setup a new project with this template with: `yomano setup some
 
 The only mandatory entries are `name` and `description`.
 
-Notice you have `chalk` available so you can easily print out nice colored texts.  
+Notice you have `chalk` available so you can easily print out nice colored texts. You also have `js` and `path` in case you want to deal with files yourself.
 
 ```js
-module.exports = function(chalk){
+module.exports = function(chalk, fs, path){
     return {
         name: 'something',
         description: 'something pack.\n'+chalk.gray("I'm awesome!"),
         prompt: [
-            {name:'test', type:'boolean'},
+            {name:'extra', message:'Install extra pack?', type:'confirm', default:false},
         ],
         special: [
-            ['optional/*', 'if:test']
+            ['optional/*', 'if:extra']
         ],
         init         : function(){},
         after_prompt : function(context){},
@@ -80,7 +80,7 @@ module.exports = function(chalk){
 
 ### prompt
 
-An array of objects. Used to inquire the user with relevant questions. You can use all features of [prompt](https://www.npmjs.com/package/prompt) package, as long you use its *alternate validation api*.
+An array of objects. Used to inquire the user with relevant questions. You can use all features of [inquirer](https://www.npmjs.com/package/inquirer) package.
 
 The first 3 questions are standard:
 
@@ -108,12 +108,12 @@ In example above the content of `optional` folder is only installed if you answe
 
 A special like: `['temp1/robot.txt', 'rename:temp1:www']` will save the file from `<context.source>/temp1/robot.txt` as `<context.dest>/www/robot.txt`.
 
-You can combine all:
+You can combine all together:
 
 ```js
 return {
     prompt: [
-        {name:'mode', description:'Use advanced mode? [yes]', type:'boolean', default:true},
+        {name:'mode', message:'Use advanced mode? [yes]', type:'confirm', default:true},
     ],
     special: [
         ['advanced/index.html', 'if:mode;rename:advanced:www'],
@@ -135,34 +135,34 @@ Also, yomano will create empty folders for you, but git will not track then. So,
 
 ### preprocessor
 
-Yomano uses [preprocess](https://github.com/jsoverson/preprocess#directive-syntax) as its template engine. You can use any of its directives as long you **ALWAYS** use the `js` syntax, no matter the file you are producing. All used directive will be removed after its evaluation so your final code will be fine.
+Yomano uses [ejs](https://www.npmjs.com/package/ejs) as its template engine. You can use any of its directives. All used directive will be removed after its evaluation so your final code will be fine.
 
 Example in a js file:
 
 ```js
-var user = "/* @echo owner */";
+var user = "<%= owner %>";
 
-/* @if test==true */
+<%_ if(test){ %>
 test = require('test');
 test.doit(user);
-/* @endif */
+<%_ } %>
 ```
 
 in HTML:
 
 ```html
-<input type="text" name="f_email" id="email" value="/* @echo email */">
+<input type="text" name="f_email" id="email" value="<%= email %>">
 ```
 
 JSON (you have lots of syntax errors, but the final file should be fine!)
 
 ```json
 {
-    "who": "/* @echo owner */"
-    /* @if test==false */
+    "who": "<%= owner %>"
+    <%_ if(test){ %>
     ,
     "disable_test": true
-    /* @endif */
+    <%_ } %>
 }
 ```
 
