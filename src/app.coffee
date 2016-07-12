@@ -52,16 +52,23 @@ copyFile = (source, target, context, opt, cb) ->
 
 
 executeEvents = (ev, context) ->
+    exec = (stm) ->
+        try
+            console.log stm
+            execSync stm
+        catch e
+            console.log "#{chalk.red('Oops!')} exited with error: \n\n#{e}"
+            process.exit 1
+
     if ev?
         r = ev context
         if Array.isArray r
             for l in r
                 if typeof l is 'function'
-                    l()
+                    r2 = l()
+                    exec l2 for l2 in r2 if Array.isArray r2
                 else
-                    console.log l
-                    code = execSync l
-                    process.exit code if code
+                    exec l
     return
 
 
@@ -81,10 +88,12 @@ commander
     .command 'setup <pack_name>'
     .description 'setup a new environment'
     .option '-s, --save', 'save personal information'
+    .option '-f, --force', 'force instalation into non empty folder'
     .option '-v, --verbose', 'verbose mode'
     .action (pack, options) ->
         context._verbose = options.verbose
         context._save = options.save
+        context._force = options.force
         context.pack_name = pack
         context.pack_file = "yomano-#{pack}"
     # .on '--help', -> console.log """"""
@@ -108,7 +117,7 @@ commander.parse process.argv
 
 commander.help() unless context.pack_name?
 
-if globby.sync(context.filters, cwd:context.dest).length
+if globby.sync(context.filters, cwd:context.dest).length and not context._force
     process.exit 1 unless positive "#{chalk.red('Oops!')} Target folder already have files inside. Continue? [No]: ", no
 
 try
@@ -125,7 +134,7 @@ unless context.source?
     console.log "#{chalk.red('\nOops!')} Can't find package #{chalk.yellow(context.pack_file)}"
     process.exit 1
 
-console.log "\nInstalling: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
+console.log "\nStarting: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
 executeEvents pack.init
 
 base_prompt = [
