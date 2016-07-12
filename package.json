@@ -14,13 +14,13 @@
   "dependencies": {
     "chalk": "^1.1.3",
     "commander": "^2.9.0",
+    "ejs": "^2.4.2",
     "globby": "^5.0.0",
+    "inquirer": "^1.1.2",
     "minimatch": "^3.0.2",
     "mkdirp": "^0.5.1",
     "positive": "^1.0.9",
-    "preprocess": "^3.1.0",
-    "progress": "^1.1.8",
-    "prompt": "^1.0.0"
+    "progress": "^1.1.8"
   },
   "preferGlobal": true,
   "bin": {
@@ -33,5 +33,12 @@
   "bugs": {
     "url": "https://github.com/Yomano/yomano/issues"
   },
-  "homepage": "https://github.com/Yomano/yomano#yomano"
+  "homepage": "https://github.com/Yomano/yomano#yomano",
+  "keywords": [
+    "generator",
+    "scaffold",
+    "scaffolding",
+    "boilerplate",
+    "starter-code"
+  ]
 }

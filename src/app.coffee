@@ -1,24 +1,23 @@
-chalk            = require 'chalk'
-commander        = require 'commander'
-{execSync}       = require 'child_process'
-fs               = require 'fs'
-globby           = require 'globby'
-mkdirp           = require 'mkdirp'
-path             = require 'path'
-positive         = require 'positive'
-{preprocessFile} = require 'preprocess'
-Progress         = require 'progress'
-prompt           = require 'prompt'
-minimatch        = require 'minimatch'
+chalk      = require 'chalk'
+commander  = require 'commander'
+{execSync} = require 'child_process'
+fs         = require 'fs'
+globby     = require 'globby'
+mkdirp     = require 'mkdirp'
+path       = require 'path'
+positive   = require 'positive'
+Progress   = require 'progress'
+minimatch  = require 'minimatch'
+inquirer   = require 'inquirer'
+ejs        = require 'ejs'
 
-# FIXME precisa escapar as strings
 
 class MyConfig
     constructor: ->
         @configFile = path.join (process.env.HOME || process.env.USERPROFILE), '.yomano.json'
         try
             @data = require @configFile
-        catch e
+        catch
             @data = {}
 
     get: (id) -> @data[id]
@@ -44,15 +43,12 @@ copyFile = (source, target, context, opt, cb) ->
     else
         mkdirp path.dirname(target), (err) ->
             return done err if err
-            if 'final' in opt
-                rd = fs.createReadStream source
-                rd.on "error", (err) -> done err
-                wr = fs.createWriteStream target
-                wr.on "error", (err) -> done err
-                wr.on "close", (ex) -> done()
-                rd.pipe wr
-            else
-                preprocessFile source, target, context, done, type: 'js'
+
+            myescape = (str) -> "---#{str}---"
+
+            fs.readFile source, (err, data) ->
+                data = ejs.render data.toString(), context, {escape:myescape} unless 'final' in opt
+                fs.writeFile target, data, (err) -> done err
 
 
 executeEvents = (ev, context) ->
@@ -77,9 +73,6 @@ context =
     date:
         year: new Date().getFullYear()
     filters: ['**/*', '**/.*']
-
-if globby.sync(context.filters, cwd:context.dest).length
-    process.exit 1 unless positive "#{chalk.red('Oops!')} Target folder already have files inside. Continue? [No]: ", no
 
 commander
     .version require('../package.json').version
@@ -115,8 +108,11 @@ commander.parse process.argv
 
 commander.help() unless context.pack_name?
 
+if globby.sync(context.filters, cwd:context.dest).length
+    process.exit 1 unless positive "#{chalk.red('Oops!')} Target folder already have files inside. Continue? [No]: ", no
+
 try
-    pack = require(context.pack_file)(chalk)
+    pack = require(context.pack_file)(chalk, fs, path)
     context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
 
 if not context.source? and config.get 'home'
@@ -134,27 +130,21 @@ executeEvents pack.init
 
 base_prompt = [
     name: "name"
-    description: 'Application name'
-    type: 'string'
-    pattern: /^[\w-]+$/
-    message: 'Can\'t be empty'
+    message: 'Application name'
+    validate: (v) -> if /^[\w-]{2,}$/.exec v then true else "Invalid or too short"
     default: path.basename process.cwd()
-    required: true
 ,
     name: "owner"
+    message: "your name"
     default: config.get 'owner'
-    required: true
 ,
     name: "email"
+    message: "your email"
     default: config.get 'email'
-    required: true
 ]
-schema = if pack.prompt? then base_prompt.concat(pack.prompt) else base_prompt
 
-prompt.message = chalk.cyan context.pack_name
-prompt.start()
-prompt.get schema, (err, result) ->
-
+inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_prompt
+.then (result) ->
     if context._save
         config.set 'owner', result.owner
         config.set 'email', result.email

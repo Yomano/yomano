@@ -1,7 +1,7 @@
 module.exports = function(chalk){
 	return {
-		name: '/* @echo name */',
-		description: '/* @echo name */ pack.\n'+chalk.gray('/* @echo description */'),
+		name: '<%= name %>',
+		description: '<%= name %> pack.\n'+chalk.gray('<%= description %>'),
 		prompt: [
 			{name:'test', type:'boolean'},
 		],
