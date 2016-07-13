@@ -79,7 +79,8 @@ context =
     dest: process.cwd()
     date:
         year: new Date().getFullYear()
-    filters: ['**/*', '**/.*']
+    # filters: ['**/*', '**/.*']
+    filters: ['**/*']
 
 commander
     .version require('../package.json').version
@@ -182,15 +183,27 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
             process.exit 0
 
     for file in context.files
-        opt = []
+
         target = file
+
+        test = /// \( ([+-])? ([a-z0-9]+) \) ///g
+        install = yes
+        while (m = test.exec file)?
+            if m[2] of context
+                install = install && context[m[2]] if m[1] == '+' || not m[1]?
+                install = install && !context[m[2]] if m[1] == '-'
+                target = target.replace m[0], ''
+
+        (bar.tick(); continue) unless install
+
+        opt = []
         for s in pack.special || []
             if minimatch target, s[0], {dot:true, nocase:true}
                 opt = s[1].split ';'
 
         mark = /// \{ (\w+) \} ///g
         while (m = mark.exec file)?
-            target = target.replace '{' + m[1] + '}', context[m[1]]
+            target = target.replace '{' + m[1] + '}', context[m[1]] if m[1] of context
 
         for o in opt
             if o[..6] == 'rename:'
