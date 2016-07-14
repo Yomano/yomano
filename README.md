@@ -133,19 +133,45 @@ Yomano will rename then to `something.js` and `.something-config.ini` if you ans
 
 Also, yomano will create empty folders for you, but git will not track then. So, you can create a `.yomanoignore` file inside it and you will have your desired tracked empty folder.
 
+Finally, for simpler cases, you can define if a file/folder is going to be installed by its name without need to create a rule in your `special` array of `index.js`. To do so, you should name a file like: `(+mode)file.ext`, in this case the file `file.ext` will be installed only if you answer *yes* to the question of previous example. 
+
+Want something more complex? What about: `(+mode)(-private)file-{name}.js`? Here the file `file-something.js` will be installed if you answer *yes* to mode **and** *no* to private. Then you can reproduce complete previous example by:
+
+```js
+return {
+    prompt: [
+        {name:'mode', message:'Use advanced mode? [yes]', type:'confirm', default:true},
+    ],
+}
+```
+
+and name your files as:
+
+```bash
+www/(+mode)index.html    #this will be the advanced
+www/(-mode)index.html    #and this the normal
+```
+
+here we have a single folder with multiple files inside for each mode. But you might prefer select between two folders:
+
+```bash
+(+mode)www/index.html    #this will be the advanced
+(-mode)www/index.html    #and this the normal
+```
+
 ### preprocessor
 
-Yomano uses [ejs](https://www.npmjs.com/package/ejs) as its template engine. You can use any of its directives. All used directive will be removed after its evaluation so your final code will be fine.
+Yomano uses [ejs](https://github.com/mde/ejs#ejs) as its template engine. You can use any of its directives. All used directive will be removed after its evaluation so your final code will be fine.
 
 Example in a js file:
 
 ```js
 var user = "<%= owner %>";
 
-<%_ if(test){ %>
-test = require('test');
+%%% if(test){
+test = require(<%- pack_name %>);
 test.doit(user);
-<%_ } %>
+%%% }
 ```
 
 in HTML:
@@ -158,13 +184,17 @@ JSON (you have lots of syntax errors, but the final file should be fine!)
 
 ```json
 {
+    <%_ if(!test) { -%>
+    "disable_test": false,
+    <%_ } -%>
     "who": "<%= owner %>"
-    <%_ if(test){ %>
-    ,
-    "disable_test": true
-    <%_ } %>
+%%% if(test){
+    ,"disable_test": true
+%%% }
 }
 ```
+
+For non echo block you can use the standard ejs notation `<%` and `<%_` and also the `%%%` notation, as long it starts on first column of text.
 
 ### context and callbacks
 
@@ -219,6 +249,8 @@ Then any one can install it with: `npm install -g yomano-your-pack-name`
 ## Yomano?
 
 It's a joke name. The name is close to the original Yeoman. Besides, in Portuguese, Yomano sounds like *Yo-bro*, in English. Am I a kid? No, why? 
+
+Another thing, that makes me sad, is that when I started to look for a place to promote Yomano I found [Yoga](https://github.com/raineorshine/generator-yoga)! It's a Yeoman generator but the idea behind it is **too much** close to the ideas I had to Yomano. It uses ejs templates and weird file names to control installation too. If I knew about it before, I could have saved the time that took me to create Yomano. Check it out.
 
 ## Developing
 

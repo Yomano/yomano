@@ -5,6 +5,7 @@ ejs        = require 'ejs'
 fs         = require 'fs'
 globby     = require 'globby'
 inquirer   = require 'inquirer'
+jsesc      = require 'jsesc'
 minimatch  = require 'minimatch'
 mkdirp     = require 'mkdirp'
 path       = require 'path'
@@ -25,6 +26,16 @@ class MyConfig
         @data[id] = val
         fs.writeFileSync @configFile, JSON.stringify @data, null, 4
 
+render = (input, data = {}, options = {}) ->
+
+    options.escape = (input) -> jsesc input, quotes:'double'
+
+    block = /// ^ %%% (.+) $ ///gm
+    template = input.replace block, (m, b) -> "<\%_ #{b} -\%>"
+
+    console.log template
+
+    ejs.render template, data, options
 
 copyFile = (source, target, context, opt, cb) ->
     cbCalled = no
@@ -44,12 +55,9 @@ copyFile = (source, target, context, opt, cb) ->
         mkdirp path.dirname(target), (err) ->
             return done err if err
 
-            myescape = (str) -> "---#{str}---"
-
             fs.readFile source, (err, data) ->
-                data = ejs.render data.toString(), context, {escape:myescape} unless 'final' in opt
+                data = render data.toString(), context unless 'final' in opt
                 fs.writeFile target, data, (err) -> done err
-
 
 executeEvents = (ev, context) ->
     exec = (stm) ->

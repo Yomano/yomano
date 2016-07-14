@@ -7,6 +7,7 @@
     "build": "npm run compile",
     "compile": "coffee -cbo lib src",
     "watch": "coffee -cwbo lib src",
+    "test": "jasmine-node --coffee --noStack spec",
     "postversion": "node -e \"x=require('child_process').execSync;v=x('grep \\'\"version\"\\' package.json|grep -Po \\'\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\'').toString().slice(0,-1);x('sed -ri \\'s/[0-9]+\\\\.[0-9]+\\\\.[0-9]+(.+?!!BUMPME!!)/'+v+'\\\\1/I\\' app.js')\""
   },
   "author": "Gustavo Vargas <xgvargas@gmail.com>",
@@ -17,6 +18,7 @@
     "ejs": "^2.4.2",
     "globby": "^5.0.0",
     "inquirer": "^1.1.2",
+    "jsesc": "^2.2.0",
     "minimatch": "^3.0.2",
     "mkdirp": "^0.5.1",
     "positive": "^1.0.9",

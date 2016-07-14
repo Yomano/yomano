@@ -5,8 +5,8 @@
   "main": "index.js",
   "author": "<%= owner %> <<%= email %>>",
   "license": "MIT",
-  <%_ if(private){ -%>
+%%% if(private) {
   "private": true,
-  <%_ } -%>
+%%% }
   "preferGlobal": true
 }
