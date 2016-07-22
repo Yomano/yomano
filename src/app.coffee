@@ -1,5 +1,5 @@
 chalk      = require 'chalk'
-commander  = require 'commander'
+commander  = new (require('commander').Command)('yomano')
 ejs        = require 'ejs'
 {execSync} = require 'child_process'
 fs         = require 'fs'
@@ -30,10 +30,8 @@ render = (input, data = {}, options = {}) ->
 
     options.escape = (input) -> jsesc input, quotes:'double'
 
-    block = /// ^ %%% (.+) $ ///gm
+    block    = /// ^ %%% (.+) $ ///gm
     template = input.replace block, (m, b) -> "<\%_ #{b} -\%>"
-
-    console.log template
 
     ejs.render template, data, options
 
@@ -73,8 +71,7 @@ executeEvents = (ev, context) ->
         if Array.isArray r
             for l in r
                 if typeof l is 'function'
-                    r2 = l()
-                    exec l2 for l2 in r2 if Array.isArray r2
+                    exec l2 for l2 in r2 if Array.isArray (r2 = l())
                 else
                     exec l
     return
@@ -83,12 +80,11 @@ executeEvents = (ev, context) ->
 config = new MyConfig()
 
 context =
-    platform: process.platform
-    dest: process.cwd()
+    platform : process.platform
+    dest     : process.cwd()
+    filters  : ['**/*']
     date:
         year: new Date().getFullYear()
-    # filters: ['**/*', '**/.*']
-    filters: ['**/*']
 
 commander
     .version require('../package.json').version
@@ -100,9 +96,9 @@ commander
     .option '-f, --force', 'force instalation into non empty folder'
     .option '-v, --verbose', 'verbose mode'
     .action (pack, options) ->
-        context._verbose = options.verbose
-        context._save = options.save
-        context._force = options.force
+        context._verbose  = options.verbose
+        context._save     = options.save
+        context._force    = options.force
         context.pack_name = pack
         context.pack_file = "yomano-#{pack}"
     # .on '--help', -> console.log """"""
@@ -113,6 +109,13 @@ commander
     .action ->
         context.pack_name = 'new'
         context.pack_file = "../init"
+
+commander
+    .command 'task <task_name>'
+    .description 'execute a task on a yomano project'
+    .action (task, options) ->
+        console.log '\n\nto be implemented\n'
+        process.exit 1
 
 commander
     .command 'home [path]'
@@ -130,13 +133,13 @@ if globby.sync(context.filters, cwd:context.dest).length and not context._force
     process.exit 1 unless positive "#{chalk.red('Oops!')} Target folder already have files inside. Continue? [No]: ", no
 
 try
-    pack = require(context.pack_file)(chalk, fs, path)
+    pack           = require(context.pack_file)(chalk, fs, path)
     context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
 
 if not context.source? and config.get 'home'
     try
-        local = path.join config.get('home'), context.pack_file
-        pack = require(local)(chalk)
+        local          = path.join config.get('home'), context.pack_file
+        pack           = require(local)(chalk)
         context.source = path.join path.dirname(require.resolve local), 'source'
 
 unless context.source?
@@ -147,18 +150,18 @@ console.log "\nStarting: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
 executeEvents pack.init
 
 base_prompt = [
-    name: "name"
-    message: 'Application name'
-    validate: (v) -> if /^[\w-]{2,}$/.exec v then true else "Invalid or too short"
-    default: path.basename process.cwd()
+    name     : "name"
+    message  : 'Application name'
+    validate : (v) -> if /^[\w-]{2,}$/.exec v then true else "Invalid or too short"
+    default  : path.basename process.cwd()
 ,
-    name: "owner"
-    message: "your name"
-    default: config.get 'owner'
+    name    : "owner"
+    message : "your name"
+    default : config.get 'owner'
 ,
-    name: "email"
-    message: "your email"
-    default: config.get 'email'
+    name    : "email"
+    message : "your email"
+    default : config.get 'email'
 ]
 
 inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_prompt
@@ -194,13 +197,13 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
 
         target = file
 
-        test = /// \( ([+-])? ([a-z0-9]+) \) ///g
+        test    = /// \( ([+-])? ([a-z0-9]+) \) ///g
         install = yes
         while (m = test.exec file)?
             if m[2] of context
                 install = install && context[m[2]] if m[1] == '+' || not m[1]?
                 install = install && !context[m[2]] if m[1] == '-'
-                target = target.replace m[0], ''
+                target  = target.replace m[0], ''
 
         (bar.tick(); continue) unless install
 
@@ -215,7 +218,7 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
 
         for o in opt
             if o[..6] == 'rename:'
-                val = o[7..].split ':'
+                val    = o[7..].split ':'
                 target = target.replace val[0], val[1]
 
         copyFile path.join(context.source, file), path.join(context.dest, target), context, opt, -> bar.tick()
