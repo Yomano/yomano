@@ -101,7 +101,22 @@ commander
         context._force    = options.force
         context.pack_name = pack
         context.pack_file = "yomano-#{pack}"
-    # .on '--help', -> console.log """"""
+
+commander
+    .command 'list'
+    .alias 'ls'
+    .description 'List all available yomano packs'
+    .action () ->
+        console.log "\nList of available packs in your system (global + yomano home)\n"
+        prefix = execSync('npm config get prefix').toString()[..-2]
+        for p in globby.sync [path.join(config.get('home'), 'yomano-*'), path.join(prefix, 'node_modules', 'yomano-*')]
+            id = /yomano-([a-zA-Z0-9-]+)$/.exec p
+            try
+                ver = require(path.join p, 'package.json').version
+                console.log chalk.cyan(id[1]), chalk.gray "@#{ver}"
+            catch
+                console.log chalk.red id[1]
+        process.exit 0
 
 commander
     .command 'new'
