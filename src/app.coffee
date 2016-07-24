@@ -154,7 +154,7 @@ try
 if not context.source? and config.get 'home'
     try
         local          = path.join config.get('home'), context.pack_file
-        pack           = require(local)(chalk)
+        pack           = require(local)(chalk, fs, path)
         context.source = path.join path.dirname(require.resolve local), 'source'
 
 unless context.source?
