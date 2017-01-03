@@ -8,5 +8,8 @@
 %%% if(private) {
   "private": true,
 %%% }
-  "preferGlobal": true
+  "preferGlobal": true,
+  "peerDependencies": {
+    "yomano": "*"
+  }
 }
