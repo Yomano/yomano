@@ -1,6 +1,6 @@
 {
   "name": "yomano",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Project starter!",
   "scripts": {
     "prepublish": "npm run build",
