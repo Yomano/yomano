@@ -208,13 +208,11 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
 
     console.log context if context._verbose
 
-    # process.exit 1
-
     for s in pack.special || []
         for op in s[1].split ';'
-            if op[..2] == 'if:' and op[3] != '!'
+            if op.startsWith('if:') and op[3] != '!'
                 context.filters.push "!#{s[0]}" unless context[op[3..]]
-            if op[..3] == 'if:!'
+            if op.startsWith 'if:!'
                 context.filters.push "!#{s[0]}" if context[op[4..]]
 
     executeEvents pack.after_prompt, context
@@ -228,6 +226,7 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
         width: 40
         callback: ->
             executeEvents pack.after_copy, context
+            console.log "\n\n#{chalk.green 'Success!'} -- #{chalk.grey context.name + ' is ready'}\n\n"
             executeEvents pack.say_bye, context
             process.exit 0
 
@@ -250,12 +249,10 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
             if minimatch target, s[0], {dot:true, nocase:true}
                 opt = s[1].split ';'
 
-        mark = /// \{ (\w+) \} ///g
-        while (m = mark.exec file)?
-            target = target.replace '{' + m[1] + '}', context[m[1]] if m[1] of context
+        target = target.replace /\{(\w+)\}/g, (m, m1) -> context[m1] || m
 
         for o in opt
-            if o[..6] == 'rename:'
+            if o.startsWith 'rename:'
                 val    = o[7..].split ':'
                 target = target.replace val[0], val[1]
 
