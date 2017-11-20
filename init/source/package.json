@@ -11,5 +11,6 @@
   "preferGlobal": true,
   "peerDependencies": {
     "yomano": "*"
-  }
+  },
+  "keywords": ["yomano"]
 }

@@ -2,4 +2,4 @@
 
 // THIS MUST USE UNIX LINE ENDING
 
-require('../lib/app.js');
+require('../build/yomano.js');

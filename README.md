@@ -46,7 +46,7 @@ Go to an empty folder named as `yonamo-something`, execute `yomano new` and answ
 
 You should have now a `index.js`, `license`, `package.json` files and a `source` folder.
 
-Put your template files inside the source folder. Rename then as bellow and insert the template tags.
+Put your template files inside the source folder. Rename them as bellow and insert the template tags.
 
 Edit `index.js` as needed (in many cases you don't even need), and you are done.
 
@@ -129,9 +129,9 @@ This example is fine, but in many cases is easier to have a single index.html an
 
 You can change file names to match your needs by naming files inside `source` folder as `{name}.js` or even `.{name}-config.ini`
 
-Yomano will rename then to `something.js` and `.something-config.ini` if you answer `something` for your application's name.
+Yomano will rename them to `something.js` and `.something-config.ini` if you answer `something` for your application's name.
 
-Also, yomano will create empty folders for you, but git will not track then. So, you can create a `.yomanoignore` file inside it and you will have your desired tracked empty folder.
+Also, yomano will create empty folders for you, but git will not track them. So, you can create a `.yomanoignore` file inside it and you will have your desired tracked empty folder.
 
 Finally, for simpler cases, you can define if a file/folder is going to be installed by its name without need to create a rule in your `special` array of `index.js`. To do so, you should name a file like: `(+mode)file.ext`, in this case the file `file.ext` will be installed only if you answer *yes* to the question of previous example. 
 
