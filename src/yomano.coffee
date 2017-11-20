@@ -154,7 +154,9 @@ commander
 commander
     .command 'new'
     .description 'start a new pack for yomano'
-    .action ->
+    .option '-v, --verbose', 'verbose mode'
+    .action (options) ->
+        context._verbose  = options.verbose
         context.pack_name = 'new'
         context.pack_file = "../init"
 
@@ -234,13 +236,14 @@ inquirer.prompt if pack.prompt? then base_prompt.concat(pack.prompt) else base_p
 
         target = file
 
-        test    = /// \( ([+-])? ([a-z0-9]+) \) ///g
         install = yes
-        while (m = test.exec file)?
-            if m[2] of context
-                install = install && context[m[2]] if m[1] == '+' || not m[1]?
-                install = install && !context[m[2]] if m[1] == '-'
-                target  = target.replace m[0], ''
+        target = target.replace /// \( ([+-]) ([a-z0-9]+) \) ///g, (m, m1, m2) ->
+            if m2 of context
+                install = install && context[m2] if m1 == '+'
+                install = install && !context[m2] if m1 == '-'
+                ''
+            else
+                m
 
         (bar.tick(); continue) unless install
 
