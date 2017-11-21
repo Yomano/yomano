@@ -10,6 +10,8 @@ It should be installed as global.
 
 ```bash
 npm install -g yomano
+# or
+yarn global add yomano
 ```
 
 ## Setting up a new project
@@ -25,9 +27,9 @@ For this to work you should have the package `yomano-angular-example` installed 
 You can set any local path to hold your yomano templates. This is an easy way to create personal private templates.
 
 ```bash
-#get
+# get
 yomano home
-#set
+# set
 yomano home /home/user/.hide/my-yomanos
 ```
 
@@ -56,7 +58,7 @@ You are ready to setup a new project with this template with: `yomano setup some
 
 The only mandatory entries are `name` and `description`.
 
-Notice you have `chalk` available so you can easily print out nice colored texts. You also have `js` and `path` in case you want to deal with files yourself.
+Notice you have `chalk` available so you can easily print out nice colored texts. You also have `fs` and `path` in case you want to deal with files yourself.
 
 ```js
 module.exports = function(chalk, fs, path){
@@ -65,9 +67,6 @@ module.exports = function(chalk, fs, path){
         description: 'something pack.\n'+chalk.gray("I'm awesome!"),
         prompt: [
             {name:'extra', message:'Install extra pack?', type:'confirm', default:false},
-        ],
-        special: [
-            ['optional/**', 'if:extra']
         ],
         init         : function(){},
         after_prompt : function(context){},
@@ -82,82 +81,53 @@ module.exports = function(chalk, fs, path){
 
 An array of objects. Used to inquire the user with relevant questions. You can use all features of [inquirer](https://www.npmjs.com/package/inquirer) package.
 
-The first 3 questions are standard:
+The first 4 questions are standard:
 
 - application name
+- destination directory
 - user name
 - user email
 
-### special
-
-For special cases you have the `special` array.
-
-It should be an array of arrays, the second array has two strings.
-
-The first strings is a file name which could use wildcards. The second string is a list (separated by **;**), of commands to apply to that file.
-
-There are 3 commands:
-
-- `if` - this filters the files by checking responses to the prompt.
-- `final` - this says to **not** preprocess this files while copying it.
-- `rename` - can rename parts of your relative file path.
-
-You can use `if:test` for a positive test or `if:!test` for a negative.
-
-In example above the content of `optional` folder is only installed if you answer true for the *test* question when prompted.
-
-A special like: `['temp1/robot.txt', 'rename:temp1:www']` will save the file from `<context.source>/temp1/robot.txt` as `<context.dest>/www/robot.txt`.
-
-You can combine all together:
-
-```js
-return {
-    prompt: [
-        {name:'mode', message:'Use advanced mode? [yes]', type:'confirm', default:true},
-    ],
-    special: [
-        ['advanced/index.html', 'if:mode;rename:advanced:www'],
-        ['normal/index.html', 'if:!mode;rename:normal:www'],
-    ],
-}
-```
-
-This example is fine, but in many cases is easier to have a single index.html and use preprocess directives inspecting `context.mode` inside it to change as needed.
-
-
 ### file names
 
-You can change file names to match your needs by naming files inside `source` folder as `{name}.js` or even `.{name}-config.ini`
+You can rename file names to match your needs by naming files inside `source` folder as `{name}.js` or even `.{name}-config.ini`.
 
 Yomano will rename them to `something.js` and `.something-config.ini` if you answer `something` for your application's name.
 
 Also, yomano will create empty folders for you, but git will not track them. So, you can create a `.yomanoignore` file inside it and you will have your desired tracked empty folder.
 
-Finally, for simpler cases, you can define if a file/folder is going to be installed by its name without need to create a rule in your `special` array of `index.js`. To do so, you should name a file like: `(+mode)file.ext`, in this case the file `file.ext` will be installed only if you answer *yes* to the question of previous example. 
+You can select what to copy by the way you name your files. To do so, you should name a file like: `(+extra)file.ext`, in this case the file `file.ext` will be installed only if you answer *yes* to the question of previous example. 
 
-Want something more complex? What about: `(+mode)(-private)file-{name}.js`? Here the file `file-something.js` will be installed if you answer *yes* to mode **and** *no* to private. Then you can reproduce complete previous example by:
+Want something more complex? What about: `(+mode)(-private)file-{name}.js`? Here the file `file-something.js` will be installed if you answer *yes* to mode **and** *no* to private. 
+
+A simple example:
 
 ```js
-return {
-    prompt: [
-        {name:'mode', message:'Use advanced mode? [yes]', type:'confirm', default:true},
-    ],
+// this is your index.js
+module.exports = function(chalk, fs, path){
+    return {
+        prompt: [
+            {name:'mode', message:'Use advanced mode? [yes]', type:'confirm', default:true},
+        ],
+    }
 }
 ```
 
 and name your files as:
 
 ```bash
-www/(+mode)index.html    #this will be the advanced
-www/(-mode)index.html    #and this the normal
+www/(+mode)index.html    # this will be the advanced
+www/(-mode)index.html    # and this the normal
 ```
 
 here we have a single folder with multiple files inside for each mode. But you might prefer select between two folders:
 
 ```bash
-(+mode)www/index.html    #this will be the advanced
-(-mode)www/index.html    #and this the normal
+(+mode)www/index.html    # this will be the advanced
+(-mode)www/index.html    # and this the normal
 ```
+
+Finally, if you have a `.ejs` file (or any other type of file which contains ejs tags), that you don´t want yomano to render, then you should name it as `(!final)myTemplate.ejs`.
 
 ### preprocessor
 
@@ -211,7 +181,7 @@ These are available for `after_prompt`:
 - `context.owner`
 - `context.email`
 
-also any other information you have requested in your pack will be available in context (like `context.test` in current example).
+also any other information you have requested in your prompts will be available in context (like `context.mode` in current example).
 
 All remaining callbacks will also include:
 
@@ -220,10 +190,10 @@ All remaining callbacks will also include:
 There are 5 callbacks you can use:
 
 - **init** - can be used to print something to the user.
-- **after_prompt** - `context.filter` will be populated with your special filters applied, here you have a chance to make changes to it.
-- **before_copy** - now you have an array of all files to be copied, and you can hack with it.
+- **after_prompt** - `context.filter` will match all, here you have a chance to make changes to it.
+- **before_copy** - `context.files` have an array of all files to be copied, and you can hack with it.
 - **after_copy** - the copy is done. You can start an environment here, for example, you can execute `bower install && npm install` at this point.
-- **say_bye** - print a last opportunity message or something like that.
+- **say_bye** - last opportunity to print a message or something like that.
 
 Callbacks can execute any code and print to console with `console.log`, also you can return an array with strings and functions. Any string will be executed by your shell. Functions are executed in its turn.
 
@@ -231,7 +201,7 @@ example of a python project:
 
 ```js
 after_copy : function(context){
-    console.log(chalk.yellow('\nPreparing your environment, may take a long time...\n'))
+    console.log(chalk.yellow('\nPreparing your environment, that may take a long time...\n'))
     return [
         'virtualenv venv',
         function(){console.log('I could be an echo :)');},
