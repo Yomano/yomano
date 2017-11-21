@@ -1,0 +1,14 @@
+{
+  "name": "yomano-test",
+  "version": "1.0.0",
+  "description": "yomano-test -> Yomano's features playground",
+  "main": "index.js",
+  "author": "Gustavo Vargas <xgvargas@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "preferGlobal": true,
+  "peerDependencies": {
+    "yomano": "*"
+  },
+  "keywords": ["yomano"]
+}

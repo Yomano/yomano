@@ -237,8 +237,8 @@ npm install
 # install in dev mode
 npm link
 
-# compile code with:
-npm run compile
-# or
-npm run watch
+# build code with:
+npm run build
+# or, to watch for changes
+npm run dev
 ```

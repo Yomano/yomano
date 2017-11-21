@@ -1,0 +1,15 @@
+--Text using <%%- %%>
+<%- longText %>
+
+--Text using <%%= %%>
+<%= longText %>
+
+--Text using <%%- -%%>
+<%- longText -%>
+
+--Text using <%%= -%%>
+<%= longText -%>
+
+--Using variables
+<% temp = 'Hello' %>
+<%= 'Local text is: ' + temp %>

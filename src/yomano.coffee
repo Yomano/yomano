@@ -80,7 +80,7 @@ processCli = ->
         .action (options) ->
             context._verbose  = options.verbose
             context.pack_name = 'new'
-            context.pack_file = "../init"
+            context.pack_file = "../yomano-yomano"
 
     commander
         .command 'task <task_name>'
