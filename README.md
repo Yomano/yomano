@@ -67,7 +67,7 @@ module.exports = function(chalk, fs, path){
             {name:'extra', message:'Install extra pack?', type:'confirm', default:false},
         ],
         special: [
-            ['optional/*', 'if:extra']
+            ['optional/**', 'if:extra']
         ],
         init         : function(){},
         after_prompt : function(context){},

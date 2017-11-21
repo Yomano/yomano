@@ -117,7 +117,7 @@ render = (input, data = {}, options = {}) ->
 
 ### copy a file while rendering its content if applicable
 ###
-copyFile = (source, target, context, opt, cb) ->
+copyFile = (source, target, context, final, cb) ->
     cbCalled = no
 
     done = (err) ->
@@ -136,7 +136,7 @@ copyFile = (source, target, context, opt, cb) ->
             return done err if err
 
             fs.readFile source, (err, data) ->
-                data = render data.toString(), context unless 'final' in opt
+                data = render data.toString(), context unless final
                 fs.writeFile target, data, (err) -> done err
 
 ### execute events
@@ -226,7 +226,7 @@ checkIfEmpty = ->
             inquirer.prompt {
                 name: 'q'
                 type: 'confirm'
-                message: 'Target folder already have files inside. Continue?'
+                message: 'Target folder already have files inside it. Continue?'
                 default: no
             }
             .then (response) ->
@@ -234,17 +234,6 @@ checkIfEmpty = ->
                 return reject()
         else
             resolve()
-
-### process glob filter based on current context and special field of pack
-###
-processFilter = ->
-    for s in pack.special || []
-        for op in s[1].split ';'
-            if op.startsWith('if:') and op[3] != '!'
-                context.filters.push "!#{s[0]}" unless context[op[3..]]
-            if op.startsWith 'if:!'
-                context.filters.push "!#{s[0]}" if context[op[4..]]
-    Promise.resolve()
 
 ### list all files matched by current glob filter
 ###
@@ -267,8 +256,12 @@ copyFiles = ->
             target = file
 
             install = yes
-            target = target.replace /// \( ([+-]) ([a-z0-9]+) \) ///g, (m, m1, m2) ->
-                if m2 of context
+            final = no
+            target = target.replace /// \( ([!+-]) ([a-z0-9]+) \) ///g, (m, m1, m2) ->
+                if m1 == '!' and m2 == 'final'
+                    final = yes
+                    ''
+                else if m2 of context
                     install = install && context[m2] if m1 == '+'
                     install = install && !context[m2] if m1 == '-'
                     ''
@@ -277,19 +270,9 @@ copyFiles = ->
 
             (bar.tick(); continue) unless install
 
-            opt = []
-            for s in pack.special || []
-                if minimatch target, s[0], {dot:true, nocase:true}
-                    opt = s[1].split ';'
-
             target = target.replace /\{(\w+)\}/g, (m, m1) -> context[m1] || m
 
-            for o in opt
-                if o.startsWith 'rename:'
-                    val    = o[7..].split ':'
-                    target = target.replace val[0], val[1]
-
-            copyFile path.join(context.source, file), path.join(context.dest, target), context, opt, -> bar.tick()
+            copyFile path.join(context.source, file), path.join(context.dest, target), context, final, -> bar.tick()
 
 ###
 *
@@ -313,14 +296,13 @@ loadPack()
         config.set 'email', result.email
     checkIfEmpty()
 .then ->
-    processFilter()
-.then ->
     console.log context if context._verbose
     executeEvents pack.after_prompt, context
 .then ->
     processGlob()
 .then (files) ->
     context.files = files
+    console.log context
     executeEvents pack.before_copy, context
 .then ->
     copyFiles()

@@ -5,9 +5,6 @@ module.exports = function(chalk, fs, path){
         prompt: [
             {name:'test', type:'confirm', message:'Is a test?', default:false},
         ],
-        special: [
-            ['test/*', 'if:test']
-        ],
         init         : function(){},
         after_prompt : function(context){},
         before_copy  : function(context){},
