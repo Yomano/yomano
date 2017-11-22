@@ -81,6 +81,7 @@ processCli = ->
             context._verbose  = options.verbose
             context.pack_name = 'new'
             context.pack_file = "../yomano-yomano"
+            context.dest = config.get('home') || context.dest
 
     commander
         .command 'task <task_name>'
@@ -90,10 +91,10 @@ processCli = ->
             process.exit 1
 
     commander
-        .command 'home [path]'
+        .command 'home [home]'
         .description 'get/set personal home folder'
-        .action (path) ->
-            config.set 'home', path if path?
+        .action (home) ->
+            config.set 'home', path.resolve home if home?
             console.log "\nYour current home folder: #{chalk.yellow config.get 'home'}"
             process.exit 0
 
@@ -204,6 +205,12 @@ runQuestions = ->
         name    : 'dest'
         message : 'Destination'
         default : context.dest
+        filter  : (v) ->
+            path.resolve (
+                v
+                .replace /^(?:~|\$HOME)(\/|\\)/, (m, m1) -> process.env.HOME + m1
+                .replace /^~(\w+)(\/|\\)/, (m, m1, m2) -> process.env.HOME + m2 + '..' + m2 + m1 + m2
+            )
     ,
         name    : "owner"
         message : "Your name"
