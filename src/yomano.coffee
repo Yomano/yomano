@@ -1,3 +1,13 @@
+###!
+--- yomano ---
+
+Released under MIT license.
+
+by Gustavo Vargas - @xgvargas - 2016
+
+Original coffee code and issues at: https://github.com/Yomano/yomano
+###
+
 chalk      = require 'chalk'
 ejs        = require 'ejs'
 {execSync} = require 'child_process'
@@ -7,8 +17,9 @@ inquirer   = require 'inquirer'
 jsesc      = require 'jsesc'
 minimatch  = require 'minimatch'
 mkdirp     = require 'mkdirp'
-Progress   = require 'progress'
 path       = require 'path'
+ora        = require 'ora'
+logSymbols = require 'log-symbols'
 commander  = new (require('commander').Command)('yomano')
 
 
@@ -47,12 +58,10 @@ processCli = ->
     commander
         .command 'setup <pack_name>'
         .description 'setup a new environment'
-        .option '-s, --save', 'save personal information'
         .option '-f, --force', 'force instalation into non empty folder'
         .option '-v, --verbose', 'verbose mode'
         .action (pack, options) ->
             context._verbose  = options.verbose
-            context._save     = options.save
             context._force    = options.force
             context.pack_name = pack
             context.pack_file = "yomano-#{pack}"
@@ -106,7 +115,7 @@ processCli = ->
 ###
 render = (input, data = {}, options = {}) ->
 
-    options.escape = (input) -> jsesc input, {quotes:'double'}
+    options.escape ?= (input) -> jsesc input, {quotes:'double'}
 
     template = input.replace /^%%%\s*(.+)\s*$/gm, (m, m1) -> "<\%_ #{m1} -\%>"
 
@@ -116,47 +125,26 @@ render = (input, data = {}, options = {}) ->
         console.error e
         process.exit 1
 
-### copy a file while rendering its content if applicable
-###
-copyFile = (source, target, context, final, cb) ->
-    cbCalled = no
-
-    done = (err) ->
-        unless cbCalled
-            cb? err
-            cbCalled = yes
-
-    return done() if minimatch source, '.yomanoignore', {matchBase:true, dot:true}
-
-    console.log target if context._verbose
-
-    if target[-1..] in '/\\'
-        mkdirp target, (err) -> done err
-    else
-        mkdirp path.dirname(target), (err) ->
-            return done err if err
-
-            fs.readFile source, (err, data) ->
-                data = render data.toString(), context unless final
-                fs.writeFile target, data, (err) -> done err
-
 ### execute events
 if event returns an array each string item will be executed in current shell. if item is
 a function it will be executed and its output will be treated like the original one.
 ###
-executeEvents = (fn, context) ->
+executeEvent = (evName, context) ->
+
+    console.log "\n#{logSymbols.info} Executing event: #{chalk.yellow(evName)}" if context._verbose
+
     new Promise (resolve, reject) ->
 
         exec = (stm) ->
             try
-                console.log stm
+                console.log "#{logSymbols.warning} Shell executing: #{chalk.red(stm)}" if context._verbose
                 execSync stm   # FIXME usar versao async
             catch e
                 console.log "#{chalk.red('Oops!')} exited with error: \n\n#{e}"
                 reject()
 
-        if fn?
-            r = fn context
+        if pack[evName]?
+            r = pack[evName] context
             if Array.isArray r
                 for l in r
                     if typeof l is 'function'
@@ -173,16 +161,15 @@ loadPack = ->
         pack           = require(context.pack_file)(chalk, fs, path)
         context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
     catch e
-        console.log e if context._verbose
+        console.log '\n\n', e if e.code != 'MODULE_NOT_FOUND'
 
     if not context.source? and config.get 'home'
         try
             local          = path.join config.get('home'), context.pack_file
-            console.log local
             pack           = require(local)(chalk, fs, path)
             context.source = path.join path.dirname(require.resolve local), 'source'
         catch e
-            console.log e if context._verbose
+            console.log '\n\n', e if e.code != 'MODULE_NOT_FOUND'
 
     unless context.source?
         console.log "#{chalk.red('\nOops!')} Can't find package #{chalk.yellow(context.pack_file)}"
@@ -208,8 +195,8 @@ runQuestions = ->
         filter  : (v) ->
             path.resolve (
                 v
-                .replace /^(?:~|\$HOME)(\/|\\)/, (m, m1) -> process.env.HOME + m1
-                .replace /^~(\w+)(\/|\\)/, (m, m1, m2) -> process.env.HOME + m2 + '..' + m2 + m1 + m2
+                .replace /^(?:~|\$HOME)(\/|\\{1,2})/, (m, m1) -> process.env.HOME + m1
+                .replace /^~(\w+)(\/|\\{1,2})/, (m, m1, m2) -> process.env.HOME + m2 + '..' + m2 + m1 + m2
             )
     ,
         name    : "owner"
@@ -252,13 +239,15 @@ some files previouly matched may still be skiped by internal filters
 ###
 copyFiles = ->
     new Promise (resolve, reject) ->
-        bar = new Progress 'copying [:bar] :percent',
-            total: context.files.length
-            width: 40
-            callback: ->
-                resolve()
+
+        console.log '\nProcessing files...'
+        spinner = ora().start 'Preparing to copy files...'
+
+        nfiles = 0
 
         for file in context.files
+
+            continue if minimatch file, '.yomanoignore', {matchBase:true, dot:true}
 
             target = file
 
@@ -275,11 +264,33 @@ copyFiles = ->
                 else
                     m
 
-            (bar.tick(); continue) unless install
+            continue unless install
 
-            target = target.replace /\{(\w+)\}/g, (m, m1) -> context[m1] || m
+            target = path.join context.dest, target.replace /\{(\w+)\}/g, (m, m1) -> context[m1] || m
 
-            copyFile path.join(context.source, file), path.join(context.dest, target), context, final, -> bar.tick()
+            nfiles++
+            if context._verbose
+                spinner.info path.join(context.source, file) + ' --> ' + target
+            else
+                spinner.text = target
+
+            if target[-1..] in '/\\'
+                mkdirp.sync target
+            else
+                mkdirp.sync path.dirname(target)
+
+                try
+                    data = fs.readFileSync path.join(context.source, file)
+                    data = render data.toString(), context unless final
+                    fs.writeFileSync target, data
+                catch e
+                    spinner.fail 'Oops! Something went wrong...\n'
+                    spinner.stop()
+                    reject e
+
+        spinner.succeed "Done! Copied #{nfiles} files.\n"
+        spinner.stop()
+        resolve()
 
 ###
 *
@@ -293,33 +304,40 @@ processCli()
 
 loadPack()
 .then ->
-    executeEvents pack.init, null
+    executeEvent 'init', context
 .then ->
     runQuestions()
 .then (result) ->
     context = Object.assign {}, context, result
-    if context._save
-        config.set 'owner', result.owner
-        config.set 'email', result.email
+    config.set 'owner', result.owner
+    config.set 'email', result.email
+    new Promise (resolve, reject) ->
+        mkdirp context.dest, (err) ->
+            return reject err if err
+            resolve()
+.then ->
+    process.chdir context.dest
     checkIfEmpty()
 .then ->
-    console.log context if context._verbose
-    executeEvents pack.after_prompt, context
+    executeEvent 'after_prompt', context
 .then ->
     processGlob()
 .then (files) ->
     context.files = files
-    console.log context
-    executeEvents pack.before_copy, context
+    if context._verbose
+        console.log "\n#{logSymbols.info} #{chalk.yellow('Complete context')}"
+        console.dir context
+    executeEvent 'before_copy', context
 .then ->
     copyFiles()
 .then ->
-    executeEvents pack.after_copy, context
+    executeEvent 'after_copy', context
 .then ->
-    executeEvents pack.say_bye, context
+    executeEvent 'say_bye', context
 .then ->
-    console.log "\n\n#{chalk.green 'Success!'} -- #{chalk.grey context.name + ' is ready'}\n\n"
+    console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Project `' + context.name + '` is ready for you!'}\n"
     process.exit 0
 .catch (err) ->
-    console.log chalk.red('Oops! ') + err
+    console.log '\n'
+    console.log chalk.red('Oops! ') + err if err
     process.exit 1
