@@ -1,4 +1,20 @@
-module.exports = function(chalk, fs, path){
+module.exports = function(chalk, fs, path, gulp){
+
+    if(gulp) {
+        gulp.task('task1', function(cb){
+            console.log('executando tarefa 1');
+            cb();
+        });
+        gulp.task('task2', ['task1', 'task3'], function(cb){
+            console.log('executando tarefa no. 2');
+            cb()
+        });
+        gulp.task('task3', ['task1'], function(cb){
+            console.log('executando tarefa C');
+            setTimeout(function(){cb()}, 1000);
+        });
+    }
+
     return {
         name: 'yomano-test',
         description: 'yomano-test pack.\n'+chalk.gray('Yomano\'s features playground'),
@@ -10,7 +26,7 @@ module.exports = function(chalk, fs, path){
             {name:'longText', type:'string', message:'Render Text', default:"Hi, I have quotes:\"'[] and tags: <b>bold</b>"},
         ],
         init: function() { return ['touch event-init', ] },
-        after_prompt: function(context) { return ['touch event-after_prompt', 'touch boga'] },
+        after_prompt: function(context) { return ['touch event-after_prompt', ] },
         before_copy: function(context) { return ['touch event-before_copy', ] },
         after_copy: function(context) { return ['touch event-after_copy', ] },
         say_bye: function(context){
@@ -19,5 +35,19 @@ module.exports = function(chalk, fs, path){
                 'touch event-say_bye',
             ]
         },
-    }
+        tasks: [
+            {
+                name: 'boga1',
+                description: 'sou a tarefa boga do pacote yomano-test',
+                prompt: [
+                    {name:'thing', type:'confirm', message:'Should I do that thing?', default:true},
+                ],
+                init: function() { return ['touch boga1-init', ] },
+                after_prompt: function(context) { return ['touch boga1-after_prompt', ] },
+                before_copy: function(context) { return ['touch boga1-before_copy', ] },
+                after_copy: function(context) { return ['touch boga1-after_copy', ] },
+                say_bye: function(context){ return ['touch boga1-say_bye', ] },
+            },
+        ]
+    };
 }

@@ -20,9 +20,11 @@ mkdirp     = require 'mkdirp'
 path       = require 'path'
 ora        = require 'ora'
 logSymbols = require 'log-symbols'
+gulp       = require 'gulp'
 commander  = new (require('commander').Command)('yomano')
 
 
+rootPack = null
 pack = null
 config = null
 context =
@@ -60,11 +62,11 @@ processCli = ->
         .description 'setup a new environment'
         .option '-f, --force', 'force instalation into non empty folder'
         .option '-v, --verbose', 'verbose mode'
-        .action (pack, options) ->
+        .action (packName, options) ->
             context._verbose  = options.verbose
             context._force    = options.force
-            context.pack_name = pack
-            context.pack_file = "yomano-#{pack}"
+            context.pack_name = packName
+            context.pack_file = "yomano-#{packName}"
 
     commander
         .command 'list'
@@ -90,14 +92,45 @@ processCli = ->
             context._verbose  = options.verbose
             context.pack_name = 'new'
             context.pack_file = "../yomano-yomano"
-            context.dest = config.get('home') || context.dest
+            # context.dest = config.get('home') || context.dest
 
     commander
-        .command 'task <task_name>'
+        .command 'task [task_name]'
         .description 'execute a task on a yomano project'
-        .action (task, options) ->
-            console.log '\n\nto be implemented\n'
-            process.exit 1
+        .action (taskName, options) ->
+
+            # TODO andar pra tras na arvore ate encontrar o arquivo .yomano-package e ler os dados abaixo dele
+
+            # TODO mudar o cwd para o local do tal arquivo
+
+            context.pack_name = 'test'
+            context.pack_file = 'yomano-test'
+            context.taskName = taskName
+            loadPack()
+
+            unless taskName
+                tasks = Object.keys gulp.tasks
+                tasks.push t.name for t in rootPack.tasks || []
+                console.log "\nAvailable tasks: #{tasks.sort().join(', ')}\n" if Object.keys(gulp.tasks).length
+                process.exit 0
+            else
+                if taskName of gulp.tasks
+                    console.log "\n#{logSymbols.info} Running Gulp task `#{chalk.yellow(taskName)}`\n"
+                    context.isGulp = true
+                    gulp.start taskName, (err) ->
+                        console.log "\n#{logSymbols.success} Done!\n"
+                        process.exit 0
+
+                else if (rootPack.tasks.find (t) -> t.name == taskName)
+                    # console.log '\n'
+
+                    # XXX nothing to do in here.... let the main code run....
+
+                else
+                    console.log "\nUnknown task `#{chalk.red(taskName)}` for project `#{chalk.cyan(context.pack_name)}`\n"
+                    process.exit 1
+
+            # process.exit 0
 
     commander
         .command 'home [home]'
@@ -157,17 +190,28 @@ executeEvent = (evName, context) ->
 tries to load from global and then from home location
 ###
 loadPack = ->
+    return Promise.resolve() if context.taskName and rootPack
     try
-        pack           = require(context.pack_file)(chalk, fs, path)
-        context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
+        rootPack = require(context.pack_file)(chalk, fs, path, gulp)
+        if context.taskName
+            pack = (rootPack.tasks || []).find (t) -> t.name == context.taskName
+            context.source = path.join path.dirname(require.resolve context.pack_file), 'tasks', context.taskName
+        else
+            pack = rootPack
+            context.source = path.join path.dirname(require.resolve context.pack_file), 'source'
     catch e
         console.log '\n\n', e if e.code != 'MODULE_NOT_FOUND'
 
     if not context.source? and config.get 'home'
         try
-            local          = path.join config.get('home'), context.pack_file
-            pack           = require(local)(chalk, fs, path)
-            context.source = path.join path.dirname(require.resolve local), 'source'
+            local = path.join config.get('home'), context.pack_file
+            rootPack = require(local)(chalk, fs, path, gulp)
+            if context.taskName
+                pack = (rootPack.tasks || []).find (t) -> t.name == context.taskName
+                context.source = path.join path.dirname(require.resolve local), 'tasks', context.taskName
+            else
+                pack = rootPack
+                context.source = path.join path.dirname(require.resolve local), 'source'
         catch e
             console.log '\n\n', e if e.code != 'MODULE_NOT_FOUND'
 
@@ -175,7 +219,9 @@ loadPack = ->
         console.log "#{chalk.red('\nOops!')} Can't find package #{chalk.yellow(context.pack_file)}"
         return Promise.reject()
 
-    console.log "\nStarting: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
+    # XXX pack will be undefined when runnning a gulp task
+    if pack
+        console.log "\nStarting: #{chalk.cyan pack.name}\n\n#{pack.description}\n"
 
     Promise.resolve()
 
@@ -191,7 +237,11 @@ runQuestions = ->
     ,
         name    : 'dest'
         message : 'Destination'
-        default : context.dest
+        default : (r) ->
+            if context.pack_name == 'new'
+                path.join (config.get('home') || context.dest), r.name
+            else
+                context.dest
         filter  : (v) ->
             path.resolve (
                 v
@@ -209,12 +259,20 @@ runQuestions = ->
         default  : config.get 'email'
     ]
 
-    inquirer.prompt base_prompt.concat pack.prompt || []
+    if context.taskName
+        if pack.prompt
+            inquirer.prompt pack.prompt
+        else
+            return Promise.resolve {}
+    else
+        inquirer.prompt base_prompt.concat pack.prompt || []
 
 ### check if target location is empty
 if CLI option `force` is true the check is skiped
 ###
 checkIfEmpty = ->
+    return Promise.resolve if context.taskName
+
     new Promise (resolve, reject) ->
         if globby.sync(context.filters, {cwd:context.dest}).length and not context._force
             inquirer.prompt {
@@ -302,42 +360,54 @@ config = new MyConfig()
 
 processCli()
 
-loadPack()
-.then ->
-    executeEvent 'init', context
-.then ->
-    runQuestions()
-.then (result) ->
-    context = Object.assign {}, context, result
-    config.set 'owner', result.owner
-    config.set 'email', result.email
-    new Promise (resolve, reject) ->
-        mkdirp context.dest, (err) ->
-            return reject err if err
-            resolve()
-.then ->
-    process.chdir context.dest
-    checkIfEmpty()
-.then ->
-    executeEvent 'after_prompt', context
-.then ->
-    processGlob()
-.then (files) ->
-    context.files = files
-    if context._verbose
-        console.log "\n#{logSymbols.info} #{chalk.yellow('Complete context')}"
-        console.dir context
-    executeEvent 'before_copy', context
-.then ->
-    copyFiles()
-.then ->
-    executeEvent 'after_copy', context
-.then ->
-    executeEvent 'say_bye', context
-.then ->
-    console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Project `' + context.name + '` is ready for you!'}\n"
-    process.exit 0
-.catch (err) ->
-    console.log '\n'
-    console.log chalk.red('Oops! ') + err if err
-    process.exit 1
+unless context.isGulp
+    loadPack()
+    .then ->
+        executeEvent 'init', context
+    .then ->
+        runQuestions()
+    .then (result) ->
+        context = Object.assign {}, context, result
+        unless context.taskName
+            config.set 'owner', result.owner
+            config.set 'email', result.email
+        new Promise (resolve, reject) ->
+            mkdirp context.dest, (err) ->
+                return reject err if err
+                resolve()
+    .then ->
+        process.chdir context.dest
+        root =
+            name: context.pack_name
+            path: context.source
+        fs.writeFileSync path.join(context.dest, '.yomano-root.json'), JSON.stringify root
+        checkIfEmpty()
+    .then ->
+        executeEvent 'after_prompt', context
+    .then ->
+        processGlob()
+    .then (files) ->
+        context.files = files
+        if context._verbose
+            console.log "\n#{logSymbols.info} #{chalk.yellow('Complete context')}"
+            console.dir context
+        executeEvent 'before_copy', context
+    .then ->
+        copyFiles()
+    .then ->
+        executeEvent 'after_copy', context
+    .then ->
+        executeEvent 'say_bye', context
+    .then ->
+        if context.taskName
+            console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Task `' + context.taskName + '` applied!'}\n"
+        else
+            console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Project `' + context.name + '` is ready for you!'}\n"
+            tasks = Object.keys gulp.tasks
+            tasks.push t.name for t in pack.tasks || []
+            console.log "Available tasks: #{tasks.sort().join(', ')}\n" if Object.keys(gulp.tasks).length
+        process.exit 0
+    .catch (err) ->
+        console.log '\n'
+        console.log chalk.red('Oops! ') + err if err
+        process.exit 1
