@@ -253,7 +253,7 @@ copyFiles = ->
 
             install = yes
             final = no
-            target = target.replace /// \( ([!+-]) ([a-z0-9]+) \) ///g, (m, m1, m2) ->
+            target = target.replace /// \( ([!+-]) ([a-z0-9]+) \) ///gi, (m, m1, m2) ->
                 if m1 == '!' and m2 == 'final'
                     final = yes
                     ''
