@@ -5,12 +5,8 @@ module.exports = function(chalk, fs, path, gulp){
             console.log('executando tarefa 1');
             cb();
         });
-        gulp.task('task2', ['task1', 'task3'], function(cb){
+        gulp.task('task2', ['task1'], function(cb){
             console.log('executando tarefa no. 2');
-            cb()
-        });
-        gulp.task('task3', ['task1'], function(cb){
-            console.log('executando tarefa C');
             setTimeout(function(){cb()}, 1000);
         });
     }

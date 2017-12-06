@@ -99,19 +99,33 @@ processCli = ->
         .description 'execute a task on a yomano project'
         .action (taskName, options) ->
 
-            # TODO andar pra tras na arvore ate encontrar o arquivo .yomano-package e ler os dados abaixo dele
+            folders = context.dest.split /\/|\\/g
+            loop
+                context.dest = path.join '/', path.join.apply(null, folders)
+                try
+                    mark = fs.readFileSync path.join context.dest, '.yomano-root.json'
+                break if mark
+                folders.pop()
+                unless folders.length
+                    console.log "\n#{logSymbols.error} Could not found a yomano project in current tree\n"
+                    process.exit 1
 
-            # TODO mudar o cwd para o local do tal arquivo
+            console.log chalk.grey "\n#{logSymbols.info} Project root: #{context.dest}"
+            process.chdir context.dest
+            mark = JSON.parse mark.toString()
 
-            context.pack_name = 'test'
-            context.pack_file = 'yomano-test'
+            context.pack_name = mark.name
+            context.pack_file = "yomano-#{mark.name}"
             context.taskName = taskName
             loadPack()
 
             unless taskName
                 tasks = Object.keys gulp.tasks
                 tasks.push t.name for t in rootPack.tasks || []
-                console.log "\nAvailable tasks: #{tasks.sort().join(', ')}\n" if Object.keys(gulp.tasks).length
+                if tasks.length
+                    console.log "#{logSymbols.info} Available tasks: #{tasks.sort().join(', ')}\n"
+                else
+                    console.log "#{logSymbols.error} No task are available for this project!\n"
                 process.exit 0
             else
                 if taskName of gulp.tasks
@@ -124,7 +138,7 @@ processCli = ->
                 else if (rootPack.tasks.find (t) -> t.name == taskName)
                     # console.log '\n'
 
-                    # XXX nothing to do in here.... let the main code run....
+                    # XXX nothing to do in here.... just let main code run....
 
                 else
                     console.log "\nUnknown task `#{chalk.red(taskName)}` for project `#{chalk.cyan(context.pack_name)}`\n"
