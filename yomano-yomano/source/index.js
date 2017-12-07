@@ -22,7 +22,7 @@ module.exports = function(chalk, fs, path, gulp){
                 before_copy  : function(context){},
                 after_copy   : function(context){},
                 say_bye      : function(context){},
-            }
+            },
         ],
     }
 }
