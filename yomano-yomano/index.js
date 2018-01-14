@@ -5,6 +5,7 @@ module.exports = function(chalk, fs, path, gulp){
         prompt: [
             {name:'description', message:'Description'},
             {name:'private', message:'Is a private pack?', type:'confirm', default:false},
+            {name:'flat', message:'Is a flat file model?', type:'confirm', default:false},
         ],
         after_prompt : function(context){
             if(!context.name.startsWith('yomano-')){
@@ -35,8 +36,6 @@ module.exports = function(chalk, fs, path, gulp){
                     "\n    after_copy   : function(context){},"
                     "\n    say_bye      : function(context){},"
                     "\n},"
-
-
                 },
             },
         ],

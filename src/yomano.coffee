@@ -82,6 +82,7 @@ processCli = ->
                     console.log chalk.cyan(id[1]), chalk.gray "@#{ver}"
                 catch
                     console.log chalk.red id[1]
+            console.log ''
             process.exit 0
 
     commander
@@ -245,9 +246,9 @@ the default questions are merged with questions from the previous loaded pack
 runQuestions = ->
     base_prompt = [
         name     : "name"
-        message  : 'Application name'
+        message  : if context.isFlat then 'File name' else 'Application name'
         validate : (v) -> if /^[\w-]{1,}$/.test v then true else "Invalid or too short"
-        default  : path.basename process.cwd()
+        # default  : if context.isFlat then '' else path.basename process.cwd()
     ,
         name    : 'dest'
         message : 'Destination'
@@ -262,16 +263,22 @@ runQuestions = ->
                 .replace /^(?:~|\$HOME)(\/|\\{1,2})/, (m, m1) -> process.env.HOME + m1
                 .replace /^~(\w+)(\/|\\{1,2})/, (m, m1, m2) -> process.env.HOME + m2 + '..' + m2 + m1 + m2
             )
-    ,
-        name    : "owner"
-        message : "Your name"
-        default : config.get 'owner'
-    ,
-        name     : "email"
-        message  : "Your email"
-        validate : (v) -> if /^\w[\.\w]+@\w[\.\w]+\.\w{3,5}$/.test v then true else 'Not a valid email'
-        default  : config.get 'email'
     ]
+
+    unless context.isFlat
+
+        base_prompt[0].default = path.basename process.cwd()
+
+        base_prompt = base_prompt.concat [
+            name    : "owner"
+            message : "Your name"
+            default : config.get 'owner'
+        ,
+            name     : "email"
+            message  : "Your email"
+            validate : (v) -> if /^\w[\.\w]+@\w[\.\w]+\.\w{3,5}$/.test v then true else 'Not a valid email'
+            default  : config.get 'email'
+        ]
 
     if context.taskName
         if pack.prompt
@@ -285,7 +292,7 @@ runQuestions = ->
 if CLI option `force` is true the check is skiped
 ###
 checkIfEmpty = ->
-    return Promise.resolve if context.taskName
+    return Promise.resolve() if context.taskName or context.isFlat
 
     new Promise (resolve, reject) ->
         if globby.sync(context.filters, {cwd:context.dest}).length and not context._force
@@ -317,6 +324,8 @@ copyFiles = ->
 
         nfiles = 0
 
+        context.realFiles = []
+
         for file in context.files
 
             continue if minimatch file, '.yomanoignore', {matchBase:true, dot:true}
@@ -340,11 +349,15 @@ copyFiles = ->
 
             target = path.join context.dest, target.replace /\{(\w+)\}/g, (m, m1) -> context[m1] || m
 
+            context.realFiles.push target
+
             nfiles++
             if context._verbose
                 spinner.info path.join(context.source, file) + ' --> ' + target
             else
                 spinner.text = target
+
+            # TODO quando estiver em modo flat deve verificar se o arquivo destino já existe e perguntar!!!
 
             if target[-1..] in '/\\'
                 mkdirp.sync target
@@ -382,7 +395,7 @@ unless context.isGulp
         runQuestions()
     .then (result) ->
         context = Object.assign {}, context, result
-        unless context.taskName
+        unless context.taskName or context.isFlat
             config.set 'owner', result.owner
             config.set 'email', result.email
         new Promise (resolve, reject) ->
@@ -391,10 +404,13 @@ unless context.isGulp
                 resolve()
     .then ->
         process.chdir context.dest
-        root =
-            name: context.pack_name
-            path: context.source
-        fs.writeFileSync path.join(context.dest, '.yomano-root.json'), JSON.stringify root
+        # unless context.pack_name == 'new' and not context.single
+        unless context.isFlat
+            root =
+                name: context.pack_name
+                path: context.source
+                context: context
+            fs.writeFileSync path.join(context.dest, '.yomano-root.json'), JSON.stringify root
         checkIfEmpty()
     .then ->
         executeEvent 'after_prompt', context
@@ -413,7 +429,9 @@ unless context.isGulp
     .then ->
         executeEvent 'say_bye', context
     .then ->
-        if context.taskName
+        if context.isFlat
+            console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Flat Model `' + context.name + '` created!'}\n"
+        else if context.taskName
             console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Task `' + context.taskName + '` applied!'}\n"
         else
             console.log "\n#{chalk.green 'Success!'} -- #{chalk.grey 'Project `' + context.name + '` is ready for you!'}\n"
