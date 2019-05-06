@@ -1,6 +1,6 @@
 {
   "name": "yomano",
-  "version": "1.4.0",
+  "version": "1.4.2",
   "description": "Project starter!",
   "scripts": {
     "prepublish": "npm run build",
@@ -27,7 +27,7 @@
     "yomano": "./bin/cli"
   },
   "engines": {
-    "node":">=10"
+    "node": ">=10"
   },
   "repository": {
     "type": "git",
