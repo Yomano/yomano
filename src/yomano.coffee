@@ -246,7 +246,7 @@ the default questions are merged with questions from the previous loaded pack
 runQuestions = ->
     base_prompt = [
         name     : "name"
-        message  : if context.isFlat then 'File name' else 'Application name'
+        message  : if context.isFlat then 'File name (no extension)' else 'Application name'
         validate : (v) -> if /^[\w-]{1,}$/.test v then true else "Invalid or too short"
         # default  : if context.isFlat then '' else path.basename process.cwd()
     ,
