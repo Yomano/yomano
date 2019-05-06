@@ -26,6 +26,9 @@
   "bin": {
     "yomano": "./bin/cli"
   },
+  "engines": {
+    "node":">=10"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:Yomano/yomano.git"
