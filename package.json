@@ -14,7 +14,7 @@
     "commander": "^2.9.0",
     "ejs": "^2.4.2",
     "globby": "^5.0.0",
-    "gulp": "^3.9.1",
+    "gulp": "4",
     "inquirer": "^1.1.2",
     "jsesc": "^2.2.0",
     "log-symbols": "^2.1.0",

@@ -78,8 +78,9 @@ processCli = ->
             for p in globby.sync [path.join(config.get('home'), 'yomano-*'), path.join(prefix, 'yomano-*')]
                 id = /yomano-([a-zA-Z0-9-]+)$/.exec p
                 try
-                    ver = require(path.join p, 'package.json').version
-                    console.log chalk.cyan(id[1]), chalk.gray "@#{ver}"
+                    {version, description} = require(path.join p, 'package.json')
+                    description = description.split(/\s?->\s*/).reverse()[0]
+                    console.log chalk.cyan(id[1]), chalk.gray("@#{version}"), ' - ', chalk.yellow(description)
                 catch
                     console.log chalk.red id[1]
             console.log ''
